@@ -1,41 +1,73 @@
 'use strict';
 
-const Game = require('../modules/Game.class');
-const game = new Game();
-
+const cells = document.querySelectorAll('.field-cell');
 const button = document.querySelector('.button');
+const score = document.querySelector('.game-score');
 const messageStart = document.querySelector('.message-start');
 const messageWin = document.querySelector('.message-win');
 const messageLose = document.querySelector('.message-lose');
-const scoreElement = document.querySelector('.game-score');
 
-button.addEventListener('click', (ev) => {
-  ev.preventDefault();
+// Uncomment the next lines to use your game instance in the browser
+const Game = require('../modules/Game.class');
+const game = new Game();
 
-  if (button.classList.contains('start')) {
+button.addEventListener('click', () => {
+  if (game.getStatus() === 'idle') {
     game.start();
-    updateTable(game.getState());
-
-    button.classList.replace('start', 'restart');
-    button.innerHTML = 'Restart';
+    button.disabled = true;
 
     messageStart.classList.add('hidden');
-  } else if (button.classList.contains('restart')) {
+    messageWin.classList.add('hidden');
+    messageLose.classList.add('hidden');
+  } else {
     game.restart();
-    updateTable(game.getState());
-    updateScore(game.getScore());
-    winOrLose();
+    game.start();
 
-    button.classList.replace('restart', 'start');
-    button.innerHTML = 'Start';
-
-    messageStart.classList.remove('hidden');
+    messageLose.classList.add('hidden');
   }
+
+  renderBoard(game.getState());
 });
 
-document.addEventListener('keydown', (ev) => {
+document.addEventListener('win', () => {
+  messageWin.classList.remove('hidden');
+});
+
+function renderBoard(cellsAfterMove) {
+  score.innerText = game.getScore();
+
+  if (game.status === 'lose') {
+    messageLose.classList.remove('hidden');
+  }
+
+  cellsAfterMove.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      const cellElement = cells[rowIndex * 4 + colIndex];
+
+      if (cell !== 0) {
+        cellElement.textContent = cell;
+        cellElement.className = `field-cell field-cell--${cell}`;
+      } else {
+        cellElement.textContent = '';
+        cellElement.className = 'field-cell';
+      }
+
+      game.changedСell.forEach(([cellRow, cellColumn]) => {
+        if (cellRow === rowIndex && cellColumn === colIndex) {
+          cellElement.classList.add('animation');
+
+          cellElement.addEventListener('animationend', () => {
+            cellElement.classList.remove('animation');
+          });
+        }
+      });
+    });
+  });
+}
+
+document.addEventListener('keydown', (e) => {
   if (game.getStatus() === 'playing') {
-    switch (ev.key) {
+    switch (e.key) {
       case 'ArrowUp':
         game.moveUp();
         break;
@@ -49,44 +81,14 @@ document.addEventListener('keydown', (ev) => {
         game.moveRight();
         break;
     }
-    updateTable(game.getState());
-    updateScore(game.getScore());
-    winOrLose();
   }
+
+  button.disabled = false;
+
+  if (button.innerText === 'Start') {
+    button.innerText = 'Restart';
+    button.className = 'button restart';
+  }
+
+  renderBoard(game.getState());
 });
-
-function updateTable(state) {
-  const table = document.querySelector('.game-field');
-
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      if (state[i][j] === 0) {
-        table.rows[i].cells[j].innerHTML = '';
-
-        table.rows[i].cells[j].classList = 'field-cell';
-      } else {
-        table.rows[i].cells[j].innerHTML = state[i][j];
-
-        table.rows[i].cells[j].classList =
-          `field-cell field-cell--${state[i][j]}`;
-      }
-    }
-  }
-}
-
-function updateScore(score) {
-  scoreElement.innerHTML = score;
-}
-
-function winOrLose() {
-  const result = game.checkWinOrLose();
-
-  if (result === 'win') {
-    messageWin.classList.remove('hidden');
-  } else if (result === 'lose') {
-    messageLose.classList.remove('hidden');
-  } else {
-    messageWin.classList.add('hidden');
-    messageLose.classList.add('hidden');
-  }
-}
