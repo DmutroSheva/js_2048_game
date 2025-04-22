@@ -3,91 +3,90 @@
 const Game = require('../modules/Game.class');
 const game = new Game();
 
-const startBtn = document.querySelector('.button-start');
-const score = document.querySelector('.game-score');
-const msgWin = document.querySelector('.message-win');
-const msgLose = document.querySelector('.message-lose');
-const msgStart = document.querySelector('.message-start');
+const button = document.querySelector('.button');
+const messageStart = document.querySelector('.message-start');
+const messageWin = document.querySelector('.message-win');
+const messageLose = document.querySelector('.message-lose');
+const scoreElement = document.querySelector('.game-score');
 
-function updateBoard() {
-  const state = game.getState();
+button.addEventListener('click', (ev) => {
+  ev.preventDefault();
 
-  state.forEach((row, rowIndex) => {
-    row.forEach((el, cellIndex) => {
-      const cell = document.querySelector(
-        `[data-position="${rowIndex}-${cellIndex}"]`,
-      );
-
-      if (!cell) {
-        return;
-      }
-
-      cell.textContent = el !== 0 ? el : '';
-      updateCellClass(cell, el);
-    });
-  });
-}
-
-function updateCellClass(cell, value) {
-  cell.className = 'field-cell';
-
-  if (value !== 0) {
-    cell.classList.add(`field-cell--${value}`);
-  }
-}
-
-function updateScore() {
-  score.textContent = game.getScore();
-}
-
-function updateMessages() {
-  const gameStatus = game.getStatus();
-
-  msgWin.classList.add('hidden');
-  msgLose.classList.add('hidden');
-  msgStart.classList.add('hidden');
-
-  if (gameStatus === 'win') {
-    msgWin.classList.remove('hidden');
-  } else if (gameStatus === 'lose') {
-    msgLose.classList.remove('hidden');
-  } else if (gameStatus === 'idle') {
-    msgStart.classList.remove('hidden');
-  }
-}
-
-startBtn.addEventListener('click', () => {
-  if (startBtn.classList.contains('start')) {
+  if (button.classList.contains('start')) {
     game.start();
-    updateBoard();
-    updateScore();
-    updateMessages();
-    startBtn.classList.remove('start');
-    startBtn.classList.add('restart');
-    startBtn.textContent = 'Restart';
-  } else {
+    updateTable(game.getState());
+
+    button.classList.replace('start', 'restart');
+    button.innerHTML = 'Restart';
+
+    messageStart.classList.add('hidden');
+  } else if (button.classList.contains('restart')) {
     game.restart();
-    updateBoard();
-    updateScore();
-    updateMessages();
-    startBtn.classList.remove('restart');
-    startBtn.classList.add('start');
-    startBtn.textContent = 'Start';
+    updateTable(game.getState());
+    updateScore(game.getScore());
+    winOrLose();
+
+    button.classList.replace('restart', 'start');
+    button.innerHTML = 'Start';
+
+    messageStart.classList.remove('hidden');
   }
 });
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft') {
-    game.moveLeft();
-  } else if (e.key === 'ArrowRight') {
-    game.moveRight();
-  } else if (e.key === 'ArrowUp') {
-    game.moveUp();
-  } else if (e.key === 'ArrowDown') {
-    game.moveDown();
+document.addEventListener('keydown', (ev) => {
+  if (game.getStatus() === 'playing') {
+    switch (ev.key) {
+      case 'ArrowUp':
+        game.moveUp();
+        break;
+      case 'ArrowDown':
+        game.moveDown();
+        break;
+      case 'ArrowLeft':
+        game.moveLeft();
+        break;
+      case 'ArrowRight':
+        game.moveRight();
+        break;
+    }
+    updateTable(game.getState());
+    updateScore(game.getScore());
+    winOrLose();
   }
-
-  updateBoard();
-  updateScore();
-  updateMessages();
 });
+
+function updateTable(state) {
+  const table = document.querySelector('.game-field');
+
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      if (state[i][j] === 0) {
+        table.rows[i].cells[j].innerHTML = '';
+
+        table.rows[i].cells[j].classList = 'field-cell';
+      } else {
+        table.rows[i].cells[j].innerHTML = state[i][j];
+
+        table.rows[i].cells[j].classList =
+          `field-cell field-cell--${state[i][j]}`;
+      }
+    }
+  }
+}
+
+function updateScore(score) {
+  scoreElement.innerHTML = score;
+}
+
+function winOrLose() {
+  const result = game.checkWinOrLose();
+
+  if (result === 'win') {
+    messageWin.classList.remove('hidden');
+  } else if (result === 'lose') {
+    messageLose.classList.remove('hidden');
+  } else {
+    messageWin.classList.add('hidden');
+    messageLose.classList.add('hidden');
+  }
+}
